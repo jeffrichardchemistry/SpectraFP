@@ -2,7 +2,7 @@
 
 
 # SpectraFP
-SpectraFP is a package to perform fingerprints from spectroscopy datas. The goal is to transform a list of spectroscopy signals - such as nmr and infrared - into a binary vector of zeros and ones. One means that there is a sign and zero the other way around.
+SpectraFP is a package to perform fingerprints from spectroscopy datas. The goal is to transform a list of spectroscopy signals - such as nmr and infrared - into a binary vector of zeros and ones. One means that there is a sign and zero absence.
 
 ## Install
 <b>Via github</b>
