@@ -163,7 +163,7 @@ class SpectraFP():
             forbidden_pos = SpectraFP.__forbiddenPos(self, permitted_pos=permitted_pos)
             
             self.__x_axis_permitted_ = np.delete(self.__x_axis_permitted_, forbidden_pos)#get out xi forbiddens
-            self.x_axis_permitted_.append(self.__x_axis_permitted_) #in case of multiple FP generation
+            self.x_axis_permitted_ = self.__x_axis_permitted_.copy() #in case of multiple FP generation
             self.__x_axis_permitted_ = self._vet_fp.copy() #reset this variable to the normal
             
             nmrfp_ = np.delete(nmrfp_, forbidden_pos)
