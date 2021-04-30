@@ -8,8 +8,9 @@ class SpectraFP():
         self.stop = range_spectra[1]
         self.step = range_spectra[2]
         self._vet_fp = np.arange(self.start, self.stop, self.step)
-        self.x_axis_permitted_ = self._vet_fp.copy()
-    
+        self.__x_axis_permitted_ = self._vet_fp.copy()
+        self.x_axis_permitted_ = []
+        
     def __list2float(self, lista):
         """
         Serve pro caso do meu dataframe onde as listas são uma string.
@@ -161,7 +162,10 @@ class SpectraFP():
             #get all forbidden positions in fingerprint array
             forbidden_pos = SpectraFP.__forbiddenPos(self, permitted_pos=permitted_pos)
             
-            self.x_axis_permitted_ = np.delete(self.x_axis_permitted_, forbidden_pos)#get out xi forbiddens
+            self.__x_axis_permitted_ = np.delete(self.__x_axis_permitted_, forbidden_pos)#get out xi forbiddens
+            self.x_axis_permitted_.append(self.__x_axis_permitted_) #in case of multiple FP generation
+            self.__x_axis_permitted_ = self._vet_fp.copy() #reset this variable to the normal
+            
             nmrfp_ = np.delete(nmrfp_, forbidden_pos)
             return nmrfp_
 
@@ -182,10 +186,10 @@ class SpectraFP():
         return df_fp
 
 """if __name__ == '__main__':
-    amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
-    nfp = SpectraFP(range_spectra=[0, 187, 0.1])
-    #amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
-    #nfp = SpectraFP(range_spectra=[0, 3, 0.1])
-    get = nfp.gen_nmrFP(sample=amostra, degree_freedom=5, spurious_variables=False)
+    #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
+    #nfp = SpectraFP(range_spectra=[0, 187, 0.1])
+    amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
+    nfp = SpectraFP(range_spectra=[0, 3, 0.1])
+    get = nfp.gen_nmrFP(sample=amostra2, degree_freedom=5, spurious_variables=False)
     print(get, len(get), nfp.x_axis_permitted_)"""
 
