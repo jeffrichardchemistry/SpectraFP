@@ -111,7 +111,7 @@ class SpectraFP():
                 forbidden_pos.append(i)
         return forbidden_pos
 
-    def gen_nmrFP(self, sample, degree_freedom = 1, spurious_variables=False, precision=1):
+    def genFP(self, sample, correction = 1, spurious_variables=False, precision=1):
         """
         This function returns a binary vector of 0 and 1,
         where 1 means the presence of a signal in a given region.
@@ -125,8 +125,8 @@ class SpectraFP():
         sample
             A list of signals.
         
-        degree_freedom
-            the degree of freedom is associated with the
+        correction
+            the correction is associated with the
             rigidity of the system. Given a degree of
             freedom of 1, we have that in a vector of
             signals [0.0, 0.1, 0.2] only the value of the
@@ -150,13 +150,14 @@ class SpectraFP():
         axis_ = [self.start, self.stop, self.step]
         sample = np.asarray(sample)
         original_pos = SpectraFP.__findPos(self, sample, dec=precision) #get positions without degree of freedom
-        permitted_pos = SpectraFP.__permittedPos(self, degree_freedom=degree_freedom, axis_range=axis_) #get positions with degree_Freedom
+        permitted_pos = SpectraFP.__permittedPos(self, degree_freedom=correction, axis_range=axis_) #get positions with degree_Freedom
 
         new_positions = SpectraFP.__findPos_filttered(self, original_pos, permitted_pos)
 
-        nmrfp_ = np.zeros(len(self._vet_fp))
-        nmrfp_[new_positions] = 1
+        nmrfp_ = np.zeros(len(self._vet_fp), dtype='uint8')
+        nmrfp_[new_positions] = np.uint8(1)
         if spurious_variables:
+            self.x_axis_permitted_ = self.__x_axis_permitted_.copy()
             return nmrfp_
         else:
             #get all forbidden positions in fingerprint array
@@ -169,27 +170,114 @@ class SpectraFP():
             nmrfp_ = np.delete(nmrfp_, forbidden_pos)
             return nmrfp_
 
-    #preciso arrumar essa função ainda, pra poder fazer tudo de uma vez
-    def __fit(self, df_carbon, column = 2):
+    
+    def fit(self, data_signs, correction=1, precision=1, spurious_variables=False, returnAsDataframe=True, colabel='sign-',verbose=True):
         """
-        This function returns a dataframe of fingerprints, so
-        its perform in all dataset.
+        Generate fingerprints of a signs list.
+        
+        Args:
+            data_signs:
+                List or matrix of signs.
+                
+                >>> Example of data format
+                array([[1.2, 2.4, 12.3, 145.0],
+                       [5.2, 176.3],
+                       [12.4, 30.1, 50.3, 70.4,188.7],
+                       ...,
+                       [2.2, 65.4, 76.1,125.3]])
+                    
+            correction:
+                The correction is associated with the
+                rigidity of the system. Given a degree of
+                freedom of 1, we have that in a vector of
+                signals [0.0, 0.1, 0.2] only the value of the
+                medium will be considered, i.e., 0.2 and 0.0 
+                will be treated as 0.1. This idea arose to try 
+                to deal with the fluctuations of signals that
+                happen depending on the chemical environment.
+                In this case, the greater the degree of freedom,
+                the more rigid the system becomes.
+                
+            precision:
+                Is the precision of the spectroscopic measure,
+                equal to that reported in the range_spectra 
+                variable (class variable).
+                
+            spurious_variables:
+                Spurious variables are positions in the vector
+                that will always have a value of 0, set False
+                to exclude them and True to maintain.
+                
+            returnAsDataframe:
+                Return fingerprints in Pandas dataframe format.
+            colabel:
+                Label of column name in dataframes. Use when
+                'returnAsDataframe = True'
+            verbose:
+                Show the progressbar.
+            
+        Returns:
+            returns a dataframe or matrix of fingerprints
+        
         """
-        df_fp = pd.DataFrame(columns=['nmr-'+str(k) for k in range(len(self._vet_fp))])
-
-        for i in tqdm(range(len(df_carbon))):
-            fingerprint = np.zeros(len(self._vet_fp))
-            ppm = df_carbon.iloc[i, column]
-            pos = SpectraFP.__findPos(self, ppm)
-            fingerprint[pos] = 1
-            df_fp.loc[i] = fingerprint
-        return df_fp
+        fps = []
+        if verbose:
+            for sign in tqdm(data_signs):
+                fps.append(self.genFP(sample=sign,
+                                      correction=correction,
+                                      spurious_variables=spurious_variables, 
+                                      precision=precision))
+        else:
+            for sign in data_signs:
+                fps.append(self.genFP(sample=sign,
+                                      correction=correction,
+                                      spurious_variables=spurious_variables, 
+                                      precision=precision))
+        
+        fps = np.array(fps)
+        if returnAsDataframe:
+            np.set_printoptions(suppress=True)
+            df_fps = pd.DataFrame(fps, columns=[colabel+str(round(i,precision)) for i in self.x_axis_permitted_])
+            
+            return df_fps
+        else:
+            return fps
+            
+        
+        
 
 """if __name__ == '__main__':
     #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
     #nfp = SpectraFP(range_spectra=[0, 187, 0.1])
+    
     amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
-    nfp = SpectraFP(range_spectra=[0, 3, 0.1])
-    get = nfp.gen_nmrFP(sample=amostra2, degree_freedom=5, spurious_variables=False)
-    print(get, len(get), nfp.x_axis_permitted_)"""
+    amon = [[0.1, 0.4, 17, 110, 180], [3, 5, 10,12,16, 150], [43, 78, 170]]
+    nfp = SpectraFP(range_spectra=[0,190,0.1])
+    get = nfp.fit(data_signs=amon, correction=2, spurious_variables=False, returnAsDataframe=False)
+    #nfp = SpectraFP(range_spectra=[0, 3, 0.1])
+    #get = nfp.genFP(sample=amostra2, degree_freedom=2, spurious_variables=True)
+    #print(get, len(get), nfp.x_axis_permitted_)"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
