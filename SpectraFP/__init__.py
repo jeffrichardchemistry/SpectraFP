@@ -1,1 +1,1 @@
-from .spectrafp import SpectraFP
+from .spectrafp import SpectraFP, SearchEngine

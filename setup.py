@@ -5,7 +5,7 @@ with open("README.md", 'r') as fr:
 
 setup(
     name='SpectraFP',
-    version='1.0.0',
+    version='1.0.1',
     url='https://github.com/jeffrichardchemistry/SpectraFP',
     license='GNU GPL',
     author='Jefferson Richard',
@@ -14,8 +14,10 @@ setup(
     description='A package to perform fingerprints from spectroscopy datas.',
     long_description = description,
     long_description_content_type = "text/markdown",
-    packages=['SpectraFP'],
-    install_requires=['pandas', 'numpy', 'tqdm'],
+    #need this when we have more then 1 python file in same __init__.py
+    packages=find_packages(include=['fastsimilarity.py', 'SpectraFP']),
+    include_package_data=True,
+    install_requires=['pandas>=1.3.3', 'numpy==1.20.3', 'tqdm', 'numba>=0.54.1'],
 	classifiers = [
 		'Intended Audience :: Developers',
 		'Intended Audience :: Science/Research',

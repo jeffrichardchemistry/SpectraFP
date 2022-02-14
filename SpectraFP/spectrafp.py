@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import os
+from .fastsimilarity import getOnematch #to package
+#from fastsimilarity import getOnematch #run locally
 
 class SpectraFP():
     def __init__(self, range_spectra = [0,190,0.1]):
@@ -243,20 +246,160 @@ class SpectraFP():
         else:
             return fps
             
-        
-        
 
-"""if __name__ == '__main__':
-    #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
-    #nfp = SpectraFP(range_spectra=[0, 187, 0.1])
+ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
+class SearchEngine:
+    def __init__(self):
+        pass
     
-    amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
-    amon = [[0.1, 0.4, 17, 110, 180], [3, 5, 10,12,16, 150], [43, 78, 170]]
-    nfp = SpectraFP(range_spectra=[0,190,0.1])
-    get = nfp.fit(data_signs=amon, correction=2, spurious_variables=False, returnAsDataframe=False)
+    def __loadDataSets(self,correction=3):
+        """
+        This function return a dataframe with spectraFP and smiles.
+
+        Parameters
+        ----------
+        correction : TYPE, int
+            DESCRIPTION. Database corrections to SpectraFP. The default is 3.
+
+        Returns
+        -------
+        TYPE
+            Pandas dataframe.
+
+        """
+        path = ABSOLUT_PATH+'/data'        
+        filenames = os.listdir(path)
+        for name in filenames:
+            if correction > 4:
+                print('Correction must be 0,1,2,3 or 4')
+                return 0
+            if str(correction) in name:
+                return pd.read_pickle(path+'/'+name, compression='zip')
+    
+    def __makeSpectraFP(self, peaklist, correction = 3, spurious_variables=False, precision=1):
+        """
+        Transform a input of peaklist in SpectraFP.
+
+        Parameters
+        ----------
+        peaklist : list
+            list of signs.
+        correction : int
+            DESCRIPTION. The default is 3.
+        spurious_variables : Bool
+            DESCRIPTION. The default is False.
+        precision : int
+            DESCRIPTION. The default is 1.
+
+        Returns
+        -------
+        sfp : array
+            SpectraFP.
+
+        """
+        se = SpectraFP(range_spectra=[0, 240, 0.1])
+        sfp = se.genFP(sample=peaklist, correction = correction, spurious_variables=False, precision=1)
+        return sfp
+    
+    def __getMatch(self, threshold, difBetween13C,similarity_metric, alpha, beta,nsigns_input,onlySpecFP, input_FP, complete_base):
+        _, matches_complete = getOnematch(threshold=threshold,
+                                          base_train=onlySpecFP, base_test=input_FP, complete_base=complete_base,
+                                          similarity_metric=similarity_metric,alpha=alpha, beta=beta)
+        
+        if not difBetween13C:
+            return _
+        
+        else:
+            new_matches = {}               
+            for smi,sim_signs in matches_complete.items():
+                dInput_match = int(abs(sim_signs[1]-nsigns_input))
+                if dInput_match <= difBetween13C:
+                    new_matches[smi] = sim_signs[0]
+            
+            return new_matches
+    
+    def search(self,signs_list=[],threshold=0.8,difBetween13C=5,correction=3,similarity='tanimoto', alpha=1, beta=0.5):
+        """
+        This function perform a similarity search between spectraFPs (query -> database) from a list of signs.
+
+        Parameters
+        ----------
+        signs_list : TYPE, list
+            List of signs, must be inside the interval
+            0.0 to 240.0. example [0.1, 14.5, 25.3, 125.3, 190.3].
+        threshold : TYPE, float
+            Must be inside interval 0 to 1. The default is 0.8.
+        difBetween13C : TYPE, int
+            This parameter is a kind of filter. This means
+            the difference between the amount of signs, in spectraFP form,
+            between the query sample and the samples from database.
+            The default is 5. Set 'False' to do not use this filter.
+        correction : TYPE, int
+            The correction is associated with the
+            rigidity of the system. Given a degree of
+            freedom of 1, we have that in a vector of
+            signals [0.0, 0.1, 0.2] only the value of the
+            medium will be considered, i.e., 0.2 and 0.0 
+            will be treated as 0.1. This idea arose to try 
+            to deal with the fluctuations of signals that
+            happen depending on the chemical environment.
+            In this case, the greater the degree of freedom,
+            the more rigid the system becomes.
+            The default is 3.
+        similarity : TYPE, str
+            The calculation metric to use. The options are:
+                'tanimoto','tversky','geometric', 'arithmetic', 'euclidian','manhattan'
+            
+            The default is 'tanimoto'.
+        alpha : TYPE, int/float
+            Only use if similarity is tversky.
+            The default is 1.
+        beta : TYPE, int/float
+            Only use if similarity is tversky.
+            The default is 0.5.
+
+        Returns
+        -------
+        matches_complete : TYPE, dictionary
+            Dictionary with smiles as keys and similarities as values.
+
+        """
+        
+        db = self.__loadDataSets(correction=correction) #load database with currently corretion
+        input_specFP = self.__makeSpectraFP(peaklist=signs_list, correction = correction, spurious_variables=False, precision=1)
+        
+        matches_complete = self.__getMatch(threshold=threshold, difBetween13C=difBetween13C,
+                                              similarity_metric=similarity, alpha=alpha, beta=beta,
+                                              nsigns_input=input_specFP.sum(),
+                                              onlySpecFP=db.iloc[:, 1:].values.astype('uint64'),
+                                              input_FP=input_specFP.reshape(1,-1).astype('uint64'),
+                                              complete_base=db)
+        
+        matches_complete = dict(sorted(matches_complete.items(), key=lambda x: x[1], reverse=True))
+        
+        
+        return matches_complete
+        
+    
+"""if __name__ == '__main__':
+    #################3 Testes SpectraFP    
+    #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
+    #nfp = SpectraFP(range_spectra=[0, 187, 0.1])    
+    #amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
+    #amon = [[0.1, 0.4, 17, 110, 180], [3, 5, 10,12,16, 150], [43, 78, 170]]
+    #nfp = SpectraFP(range_spectra=[0,190,0.1])
+    #get = nfp.fit(data_signs=amon, correction=2, spurious_variables=False, returnAsDataframe=False)
     #nfp = SpectraFP(range_spectra=[0, 3, 0.1])
     #get = nfp.genFP(sample=amostra2, degree_freedom=2, spurious_variables=True)
-    #print(get, len(get), nfp.x_axis_permitted_)"""
+    #print(get, len(get), nfp.x_axis_permitted_)
+    
+    ################# Testes SearchEngine
+    ppm_example = [8.1, 9.0, 13.5, 13.7, 18.2, 18.3, 104.6, 108.4, 109.4, 112.4, 113.2, 116.4, 120.9, 121.0, 137.4, 137.5, 145.6, 146.0, 151.2, 159.5, 159.8, 168.1, 171.7]
+    ppm_example2 = [13.4, 14.0, 22.7, 27.1, 29.4, 29.7, 29.8, 30.8, 32.0, 46.4, 204.4] #nice example
+    se = SearchEngine()
+    get = se.search(signs_list=ppm_example2, difBetween13C=False,similarity='geometric', threshold=0.6, correction=3)
+    get"""    
+    
 
 
 
