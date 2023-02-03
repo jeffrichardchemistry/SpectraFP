@@ -16,3 +16,6 @@ $ git clone https://github.com/jeffrichardchemistry/SpectraFP
 $ cd SpectraFP
 $ python3 setup.py install
 ```
+
+# Tutorials
+Tutorials on how to use this package as well as loading the databases are available in the jupyter-notebook file in `example/how_to_use.ipynb` and `Reading pickle data.ipynb`respectively.
