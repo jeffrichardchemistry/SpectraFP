@@ -1,7 +1,10 @@
 [![DOI](https://zenodo.org/badge/363234585.svg)](https://zenodo.org/badge/latestdoi/363234585)
 
 # Publication
+
 This is the official repository for the article entitled: "SpectraFP: a new spectra-based descriptor to aid in cheminformatics, molecular characterization and search algorithm applications" published in the journal Physical Chemistry Chemical Physics (PCCP).
+
+DOI: [https://doi.org/10.1039/D3CP00734K](https://doi.org/10.1039/D3CP00734K)
 
 ### How to cite
 **Bibtex**:
