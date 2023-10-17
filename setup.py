@@ -5,7 +5,7 @@ with open("README.md", 'r') as fr:
 
 setup(
     name='SpectraFP',
-    version='1.0.1',
+    version='1.0.2',
     url='https://github.com/jeffrichardchemistry/SpectraFP',
     license='GNU GPL',
     author='Jefferson Richard',
@@ -17,7 +17,7 @@ setup(
     #need this when we have more then 1 python file in same __init__.py
     packages=find_packages(include=['fastsimilarity.py', 'SpectraFP']),
     include_package_data=True,
-    install_requires=['pandas>=1.3.3', 'numpy==1.20.3', 'tqdm', 'numba>=0.54.1'],
+    install_requires=['pandas<=2.0.3', 'numpy<=1.24.4', 'tqdm', 'numba>=0.54.1'],
 	classifiers = [
 		'Intended Audience :: Developers',
 		'Intended Audience :: Science/Research',
@@ -30,8 +30,7 @@ setup(
 		'Operating System :: Microsoft :: Windows',
 		'Operating System :: POSIX :: Linux',
 		'Environment :: MacOS X',
-		'Programming Language :: Python :: 3',
-		'Programming Language :: Python :: 3.6',
-		'Programming Language :: Python :: 3.7',
-		'Programming Language :: Python :: 3.8',]
+		'Programming Language :: Python :: 3.8',
+		'Programming Language :: Python :: 3.9',
+		'Programming Language :: Python :: 3.10']
 )
