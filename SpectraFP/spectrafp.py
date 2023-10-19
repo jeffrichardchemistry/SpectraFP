@@ -5,6 +5,7 @@ import os
 from .fastsimilarity import getOnematch #to package
 #from fastsimilarity import getOnematch #run locally
 
+ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
 class SpectraFP():
     def __init__(self, range_spectra = [0,190,0.1]):
         self.start = range_spectra[0]
@@ -245,9 +246,136 @@ class SpectraFP():
             return df_fps
         else:
             return fps
-            
 
-ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
+class SpectraFP1H():
+    def __init__(self, range_spectra: list = [0,10,0.01], multiplicty_filter:list = ['All']):
+        self.range_spectra = range_spectra
+        self.multiplicity_filter = multiplicty_filter
+        
+        if multiplicty_filter != ['All']:
+            self.multiplicity_filter = [string.lower() for string in self.multiplicity_filter]
+            self.multiplicity = self.__filterMultiplicityDF(dfmultiplicity=self.__multiplicityList())            
+        else:
+            self.multiplicity = self.__multiplicityList()
+        self.allppms = np.arange(self.range_spectra[0],self.range_spectra[1],self.range_spectra[2])
+    
+    def genFP(self,peaks: list, returnAsBinaryValues: bool = False):
+        self.__checkMultiplicityFilterInInputData(df_filtered=self.multiplicity,data=peaks) #checks if multiplicities of input data is in multiplicity df filtered
+        
+        indexes = self.__getIndexes(peaks=peaks) #get indexes of ppm, multiplicty and number of hydrogen when possible
+        matrixfp = self.__makeCorrelationMatrix(indexes=indexes) #built fingerprint matrix
+        if returnAsBinaryValues:
+            matrixfp[matrixfp>1] = 1
+        return matrixfp
+            
+    def __makeCorrelationMatrix(self, indexes: list):
+        """Checks the shape of data and built the matrix based on shape (n, 3) "case that has number of hydrogens" and
+        shape (n, 2) "doesn't have number of hydrogen".
+
+        Args:
+            indexes (list): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        ar = np.array(indexes).shape
+        if ar[1] == 3:
+            matrix = np.zeros((self.multiplicity.shape[0], len(self.allppms)))
+            for indx in indexes:
+                matrix[indx[1],indx[0]] = indx[2]
+            return matrix
+        
+        elif ar[1] == 2:
+            matrix = np.zeros((self.multiplicity.shape[0], len(self.allppms)))
+            for indx in indexes:
+                matrix[indx[1],indx[0]] = 1
+            return matrix
+    
+    def __getIndexes(self, peaks: list):
+        """Search for the indexes of ppms and multiplicities and returns a list of tuples where:
+        [(index_ppm, index_multiplicity, number of hydrogen)]
+
+        Args:
+            peaks (list): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        ar = np.array(peaks).shape
+        try:
+            t = ar[1]
+        except IndexError as e: #test shape of the list and print the error
+            raise IndexError("Data structure must be a list of tuples with the shape equal (n,3) or (n,2). Example: [(1.23,'d',2), (3.21,'t',3)]") 
+        indexesAndNum1H = []
+        if ar[1] == 3:
+            for peak_multi in peaks:
+                index_ppm = np.where(self.allppms == peak_multi[0])[0][0] #search index of a ppm inside array
+                index_multiplicity = self.__searchForMultiplicityInDF(peak_multi[1]) #search index of a multiplicity inside dataframe (search in both columns)
+                indexesAndNum1H.append((index_ppm, index_multiplicity, peak_multi[2]))
+                
+            return indexesAndNum1H
+        elif ar[1] == 2:
+            for peak_multi in peaks:
+                index_ppm = np.where(self.allppms == peak_multi[0])[0][0] #search index of a ppm inside array
+                index_multiplicity = self.__searchForMultiplicityInDF(peak_multi[1]) #search index of a multiplicity inside dataframe (search in both columns)
+                indexesAndNum1H.append((index_ppm, index_multiplicity))
+                
+            return indexesAndNum1H
+        
+        else:
+            raise IndexError("Data structure must be a list of tuples with the shape equal (n,3) or (n,2). Example: [(1.23,'d',2), (3.21,'t',3)]")
+    
+    def __checkMultiplicityFilterInInputData(self,df_filtered: pd.DataFrame, data: list):
+        """This function checks if there is a multiplicity in input data that is not in multiplicity dataframe filtered.
+
+        Args:
+            df_filtered (pd.DataFrame): _description_
+            data (list): _description_
+        """
+        
+        
+        values_to_check = [dats[1] for dats in data]
+        #print(values_to_check)
+        acronym_set = set(df_filtered['acronym'].str.lower())
+        name_set = set(df_filtered['name'].str.lower())
+        missing_values = [value for value in values_to_check if value.lower() not in acronym_set and value.lower() not in name_set]
+
+        if missing_values != []:
+            raise MultiplicityError(f"The input data has multiplicities that are not in the list of filtered multiplicities. The following multiplicities are not contained: {set(missing_values)}")
+        #print(missing_values)
+            
+    def __searchForMultiplicityInDF(self, multiplicity: str):
+        """This function search the position of a multiplicity inside the pandas dataframe
+        and returns the index. This function includes both type of multiplicity names and acronyms
+
+        Args:
+            multiplicity (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        multip_col1 = self.multiplicity.loc[self.multiplicity['acronym'] == multiplicity.lower()]
+        multip_col2 = self.multiplicity.loc[self.multiplicity['name'] == multiplicity.lower()]
+        if multip_col1.empty and multip_col2.empty:
+            multiplicity = 'm'
+            return self.multiplicity.loc[self.multiplicity['acronym'] == multiplicity.lower()].index[0]
+        elif multip_col1.empty:
+            return multip_col2.index[0]
+        else:
+            return multip_col1.index[0]
+    
+    def __filterMultiplicityDF(self, dfmultiplicity:pd.DataFrame):
+        df = dfmultiplicity.copy()
+        df = df[(df['acronym'].isin(self.multiplicity_filter)) | (df['name'].isin(self.multiplicity_filter))]
+        return df
+            
+    def __multiplicityList(self):
+        path = ABSOLUT_PATH+'/data/multiplicities.csv'
+        df = pd.read_csv(path,sep=';')
+        df['acronym'] = df['acronym'].str.lower()
+        df['name'] = df['name'].str.lower()
+        return df
+            
 class SearchEngine:
     def __init__(self):
         pass
@@ -381,8 +509,12 @@ class SearchEngine:
         return matches_complete
         
     
+## classes de excepts personalizados
+class MultiplicityError(Exception):
+    pass
+
 """if __name__ == '__main__':
-    #################3 Testes SpectraFP    
+    ################# Testes SpectraFP    
     #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
     #nfp = SpectraFP(range_spectra=[0, 187, 0.1])    
     #amostra2 = [0.1, 0.2, 0.5, 0.8, 2.1, 2.9]
@@ -397,9 +529,16 @@ class SearchEngine:
     ppm_example = [8.1, 9.0, 13.5, 13.7, 18.2, 18.3, 104.6, 108.4, 109.4, 112.4, 113.2, 116.4, 120.9, 121.0, 137.4, 137.5, 145.6, 146.0, 151.2, 159.5, 159.8, 168.1, 171.7]
     ppm_example2 = [13.4, 14.0, 22.7, 27.1, 29.4, 29.7, 29.8, 30.8, 32.0, 46.4, 204.4] #nice example
     se = SearchEngine()
-    get = se.search(signs_list=ppm_example2, difBetween13C=False,similarity='geometric', threshold=0.6, correction=3)
-    get"""    
-    
+    get = se.search(signs_list=ppm_example2, difBetween13C=False,similarity='geometric', threshold=0.2, correction=0)
+    print(get)
+
+    ################# Testes SpectraFP1H
+    #data = [(0.03,'s',4),(0.12,'s',3),(0.00,'S',3),(0.18,'d',2),(0.12,'t',3)]
+    #data = [(0.03,'multiplet'),(0.12,'s'),(0.00,'s'),(0.18,'q'),(0.12,'t')]
+
+    #hfp = SpectraFP1H(range_spectra=[0,10,0.01],multiplicty_filter=['All'])
+    #result = hfp.genFP(peaks=data, returnAsBinaryValues=False)
+    #print(result)"""
 
 
 
