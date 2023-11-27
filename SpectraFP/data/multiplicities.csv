@@ -1,30 +1,31 @@
-acronym;name
-s;Singlet
-d;Doublet
-t;Triplet
-q;Quartet
-quint;Quintet
-sext;Sextet
-sept;Septet
-oct;Octet
-n;Nonet
-decet;Decet
-m;Multiplet
-dd;Doublet of Doublets
-dt;Doublet of Triplets
-td;Triplet of Doublets
-dq;Doublet of Quartets
-qd;Quartet of Doublets
-dquint;Doublet of Quintets
-ddd;Doublet of Doublets of Doublets
-ddt;Doublet of Doublets of Triplets
-dtd;Doublet of Triplets of Doublets
-tdd;Triplets of Doublets of Doublets
-ddq;Doublet of Doublets of Quartets
-dqd;Doublet of Quartets of Doublets
-dquintd;Doublet of Quintets of Doublets
-ddquint;Doublet of Doublets of Quintets
-tdquint;Triplet of Doublets of Quintets
-tquintd;Triplet of Quintets of Doublets
-qdquint;Quartet of Doublets of Quintets
-qquintd;Quartet of Quintets of Doublets
+acronym,name
+s,Singlet
+d,Doublet
+t,Triplet
+q,Quartet
+quint,Quintet
+sext,Sextet
+sept,Septet
+oct,Octet
+n,Nonet
+decet,Decet
+m,Multiplet
+dd,Doublet of Doublets
+dt,Doublet of Triplets
+td,Triplet of Doublets
+tt,Triplet of Triplets
+dq,Doublet of Quartets
+qd,Quartet of Doublets
+dquint,Doublet of Quintets
+ddd,Doublet of Doublets of Doublets
+ddt,Doublet of Doublets of Triplets
+dtd,Doublet of Triplets of Doublets
+tdd,Triplets of Doublets of Doublets
+ddq,Doublet of Doublets of Quartets
+dqd,Doublet of Quartets of Doublets
+dquintd,Doublet of Quintets of Doublets
+ddquint,Doublet of Doublets of Quintets
+tdquint,Triplet of Doublets of Quintets
+tquintd,Triplet of Quintets of Doublets
+qdquint,Quartet of Doublets of Quintets
+qquintd,Quartet of Quintets of Doublets
