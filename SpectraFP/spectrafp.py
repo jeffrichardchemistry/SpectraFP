@@ -257,7 +257,7 @@ class SpectraFP1H():
             self.multiplicity = self.__filterMultiplicityDF(dfmultiplicity=self.__multiplicityList())            
         else:
             self.multiplicity = self.__multiplicityList()
-        self.allppms = np.arange(self.range_spectra[0],self.range_spectra[1],self.range_spectra[2])
+        self.allppms = np.arange(self.range_spectra[0],self.range_spectra[1],self.range_spectra[2]).astype(float).round(2)
     
     def genFP(self,peaks: list, returnAsBinaryValues: bool = False):
         self.__checkMultiplicityFilterInInputData(df_filtered=self.multiplicity,data=peaks) #checks if multiplicities of input data is in multiplicity df filtered
@@ -309,6 +309,7 @@ class SpectraFP1H():
         indexesAndNum1H = []
         if ar[1] == 3:
             for peak_multi in peaks:
+                print(peak_multi[0],peaks)
                 index_ppm = np.where(self.allppms == peak_multi[0])[0][0] #search index of a ppm inside array
                 index_multiplicity = self.__searchForMultiplicityInDF(peak_multi[1]) #search index of a multiplicity inside dataframe (search in both columns)
                 indexesAndNum1H.append((index_ppm, index_multiplicity, peak_multi[2]))
@@ -533,7 +534,8 @@ class MultiplicityError(Exception):
     #print(get)
 
     ################# Testes SpectraFP1H
-    data = [(0.03,'s',4),(0.12,'s',3),(0.00,'S',3),(0.18,'d',2),(0.12,'t',3)]
+    data = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
+    data2 = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
     #data = [(0.03,'multiplet'),(0.12,'s'),(0.00,'s'),(0.18,'q'),(0.12,'t')]
 
     hfp = SpectraFP1H(range_spectra=[0,10,0.01],multiplicty_filter=['All'])
