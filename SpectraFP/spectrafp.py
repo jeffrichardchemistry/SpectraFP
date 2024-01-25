@@ -309,7 +309,6 @@ class SpectraFP1H():
         indexesAndNum1H = []
         if ar[1] == 3:
             for peak_multi in peaks:
-                print(peak_multi[0],peaks)
                 index_ppm = np.where(self.allppms == peak_multi[0])[0][0] #search index of a ppm inside array
                 index_multiplicity = self.__searchForMultiplicityInDF(peak_multi[1]) #search index of a multiplicity inside dataframe (search in both columns)
                 indexesAndNum1H.append((index_ppm, index_multiplicity, peak_multi[2]))
