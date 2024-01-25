@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import os
-from .fastsimilarity import getOnematch #to package
-#from fastsimilarity import getOnematch #run locally
+#from .fastsimilarity import getOnematch #to package
+from fastsimilarity import getOnematch #run locally
 
 ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
 class SpectraFP():
@@ -371,7 +371,7 @@ class SpectraFP1H():
             
     def __multiplicityList(self):
         path = ABSOLUT_PATH+'/data/multiplicities.csv'
-        df = pd.read_csv(path,sep=';')
+        df = pd.read_csv(path,sep=',')
         df['acronym'] = df['acronym'].str.lower()
         df['name'] = df['name'].str.lower()
         return df
@@ -508,7 +508,7 @@ class SearchEngine:
         
         return matches_complete
         
-    
+
 ## classes de excepts personalizados
 class MultiplicityError(Exception):
     pass
@@ -526,19 +526,19 @@ class MultiplicityError(Exception):
     #print(get, len(get), nfp.x_axis_permitted_)
     
     ################# Testes SearchEngine
-    ppm_example = [8.1, 9.0, 13.5, 13.7, 18.2, 18.3, 104.6, 108.4, 109.4, 112.4, 113.2, 116.4, 120.9, 121.0, 137.4, 137.5, 145.6, 146.0, 151.2, 159.5, 159.8, 168.1, 171.7]
-    ppm_example2 = [13.4, 14.0, 22.7, 27.1, 29.4, 29.7, 29.8, 30.8, 32.0, 46.4, 204.4] #nice example
-    se = SearchEngine()
-    get = se.search(signs_list=ppm_example2, difBetween13C=False,similarity='geometric', threshold=0.2, correction=0)
-    print(get)
+    #ppm_example = [8.1, 9.0, 13.5, 13.7, 18.2, 18.3, 104.6, 108.4, 109.4, 112.4, 113.2, 116.4, 120.9, 121.0, 137.4, 137.5, 145.6, 146.0, 151.2, 159.5, 159.8, 168.1, 171.7]
+    #ppm_example2 = [13.4, 14.0, 22.7, 27.1, 29.4, 29.7, 29.8, 30.8, 32.0, 46.4, 204.4] #nice example
+    #se = SearchEngine()
+    #get = se.search(signs_list=ppm_example2, difBetween13C=False,similarity='geometric', threshold=0.2, correction=0)
+    #print(get)
 
     ################# Testes SpectraFP1H
-    #data = [(0.03,'s',4),(0.12,'s',3),(0.00,'S',3),(0.18,'d',2),(0.12,'t',3)]
+    data = [(0.03,'s',4),(0.12,'s',3),(0.00,'S',3),(0.18,'d',2),(0.12,'t',3)]
     #data = [(0.03,'multiplet'),(0.12,'s'),(0.00,'s'),(0.18,'q'),(0.12,'t')]
 
-    #hfp = SpectraFP1H(range_spectra=[0,10,0.01],multiplicty_filter=['All'])
-    #result = hfp.genFP(peaks=data, returnAsBinaryValues=False)
-    #print(result)"""
+    hfp = SpectraFP1H(range_spectra=[0,10,0.01],multiplicty_filter=['All'])
+    result = hfp.genFP(peaks=data, returnAsBinaryValues=False)
+    print(result)"""
 
 
 
