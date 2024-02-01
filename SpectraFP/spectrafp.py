@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import os
-from .fastsimilarity import getOnematch #to package
-#from fastsimilarity import getOnematch #run locally
+#from .fastsimilarity import getOnematch #to package
+from fastsimilarity import getOnematch #run locally
 
 ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
 class SpectraFP():
@@ -259,15 +259,40 @@ class SpectraFP1H():
             self.multiplicity = self.__multiplicityList()
         self.allppms = np.arange(self.range_spectra[0],self.range_spectra[1],self.range_spectra[2]).astype(float).round(2)
     
-    def genFP(self,peaks: list, returnAsBinaryValues: bool = False):
+    def genFP(self,peaks: list, correction: int = 0 , returnAsBinaryValues: bool = False):
         self.__checkMultiplicityFilterInInputData(df_filtered=self.multiplicity,data=peaks) #checks if multiplicities of input data is in multiplicity df filtered
         
         indexes = self.__getIndexes(peaks=peaks) #get indexes of ppm, multiplicty and number of hydrogen when possible
         matrixfp = self.__makeCorrelationMatrix(indexes=indexes) #built fingerprint matrix
+        if correction > 0:
+            matrixfp = self.__compressFP(fingerprintArray=matrixfp, correction=correction)
+
         if returnAsBinaryValues:
             matrixfp[matrixfp>1] = 1
         return matrixfp
-            
+
+    def __compressFP(self, fingerprintArray:np.ndarray ,correction:int=1):
+        n = correction #fator de correção
+        grid = 2*n+1 #1, 3, 5, 7, 9 .... #grid para concatenar
+
+        ar = fingerprintArray.copy()
+
+        tile = ar.shape[1] // grid # numero de grids completo que vamos ter
+        rest = ar.shape[1] % grid #colunas que sobram no final
+
+        fpstacked = np.empty((ar.shape[0],0),int) #matriz vazia para juntar as colunas concatenadas
+        for i in range(tile): #Iteração para cada grid completo
+            #coluna individual contatenada-somada
+            gridstacked_column = ar[:,i*grid:grid*(i+1)].sum(axis=1).reshape(-1,1)
+            #Juntando todas as colunas contatenada-somada na mesma matriz
+            fpstacked = np.hstack((fpstacked,gridstacked_column))
+
+        if rest != 0: #em casos de resto 0 não sobra colunas a ser concatenada na matriz final. 
+            rest_finalfp = ar[:,-rest:] #pega o resto das colunas que sobra e concatena na matriz final
+            fpstacked = np.hstack((fpstacked,rest_finalfp))
+
+        return fpstacked
+
     def __makeCorrelationMatrix(self, indexes: list):
         """Checks the shape of data and built the matrix based on shape (n, 3) "case that has number of hydrogens" and
         shape (n, 2) "doesn't have number of hydrogen".
@@ -535,11 +560,11 @@ class MultiplicityError(Exception):
     ################# Testes SpectraFP1H
     data = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
     data2 = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
-    #data = [(0.03,'multiplet'),(0.12,'s'),(0.00,'s'),(0.18,'q'),(0.12,'t')]
+    data = [(0.03,'multiplet',2),(1.12,'s',4),(2.50,'s',3),(0.18,'q',1),(0.12,'t',2)]
 
-    hfp = SpectraFP1H(range_spectra=[0,10,0.01],multiplicty_filter=['All'])
-    result = hfp.genFP(peaks=data, returnAsBinaryValues=False)
-    print(result)"""
+    hfp = SpectraFP1H(range_spectra=[0,2.6,0.01],multiplicty_filter=['All'])
+    result = hfp.genFP(peaks=data, correction=2, returnAsBinaryValues=False)
+    print(result,result.shape)"""
 
 
 
