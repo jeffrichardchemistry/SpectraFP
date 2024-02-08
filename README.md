@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/363234585.svg)](https://zenodo.org/badge/latestdoi/363234585)
+[![DOI](https://zenodo.org/badge/363234585.svg)](https://zenodo.org/badge/latestdoi/363234585) [![PyPI version](https://img.shields.io/pypi/v/spectrafp)](https://pypi.python.org/pypi/spectrafp) [![PyPI Downloads](https://pepy.tech/badge/spectrafp)](https://pepy.tech/project/spectrafp)
 
 # Publication
 
