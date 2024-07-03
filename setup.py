@@ -5,7 +5,7 @@ with open("README.md", 'r') as fr:
 
 setup(
     name='SpectraFP',
-    version='1.2.3',
+    version='1.2.4',
     url='https://github.com/jeffrichardchemistry/SpectraFP',
     license='GNU GPL',
     author='Jefferson Richard',

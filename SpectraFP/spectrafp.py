@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import os
-#from .fastsimilarity import getOnematch #to package
-from fastsimilarity import getOnematch #run locally
+from .fastsimilarity import getOnematch #to package
+#from fastsimilarity import getOnematch #run locally
 
 ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
 class SpectraFP():
