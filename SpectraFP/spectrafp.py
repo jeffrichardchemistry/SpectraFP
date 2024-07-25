@@ -1,9 +1,16 @@
 import pandas as pd
 import numpy as np
+from numpy import dot
+from numpy.linalg import norm
 from tqdm import tqdm
 import os
-from .fastsimilarity import getOnematch #to package
-#from fastsimilarity import getOnematch #run locally
+from parallel_pandas import ParallelPandas
+
+
+try:
+    from .fastsimilarity import getOnematch #to package
+except ImportError:
+    from fastsimilarity import getOnematch #run locally
 
 ABSOLUT_PATH = os.path.dirname(os.path.realpath(__file__))
 class SpectraFP():
@@ -260,6 +267,8 @@ class SpectraFP1H():
         self.allppms = np.arange(self.range_spectra[0],self.range_spectra[1],self.range_spectra[2]).astype(float).round(2)
     
     def genFP(self,peaks: list, correction: int = 0 , returnAsBinaryValues: bool = False):
+        self.__checkIfValGreaterScale(peaks) # checks if there are values in peaklist greater then upper scale limit   
+
         self.__checkMultiplicityFilterInInputData(df_filtered=self.multiplicity,data=peaks) #checks if multiplicities of input data is in multiplicity df filtered
         
         indexes = self.__getIndexes(peaks=peaks) #get indexes of ppm, multiplicty and number of hydrogen when possible
@@ -269,7 +278,7 @@ class SpectraFP1H():
 
         if returnAsBinaryValues:
             matrixfp[matrixfp>1] = 1
-        return matrixfp
+        return matrixfp   
 
     def __compressFP(self, fingerprintArray:np.ndarray ,correction:int=1):
         n = correction #fator de correção
@@ -325,7 +334,7 @@ class SpectraFP1H():
 
         Returns:
             _type_: _description_
-        """
+        """    
         ar = np.array(peaks).shape
         try:
             t = ar[1]
@@ -350,6 +359,12 @@ class SpectraFP1H():
         else:
             raise IndexError("Data structure must be a list of tuples with the shape equal (n,3) or (n,2). Example: [(1.23,'d',2), (3.21,'t',3)]")
     
+    def __checkIfValGreaterScale(self,peaks):
+        for info in peaks:
+            if info[0] > self.range_spectra[1]:
+                #print(f"There is a value greater then scaled in peaklist: {info[0]}")                
+                raise InconsistentvalueError(f"There is a value greater then scale in peaklist. The limit of scale is {self.range_spectra[1]} and peaklist has {info[0]}")
+
     def __checkMultiplicityFilterInInputData(self,df_filtered: pd.DataFrame, data: list):
         """This function checks if there is a multiplicity in input data that is not in multiplicity dataframe filtered.
 
@@ -532,13 +547,83 @@ class SearchEngine:
         
         
         return matches_complete
+
+class SearchMetabolitesBy1H:
+
+    def __init__(self) -> None:
+        self.db = self.__loadata()
+
+    def search(self,signs1H:list, correction:int=1, range_spectra:list=[0,10,0.01], threshold:float=0.6, difLenghtSigns:int=2 ,multiplicty_filter=['All'], n_threads:int=1):
+        useintegral = self.__needIntegral(signs1H)
+        spectrafpColumn2use:None
+        if useintegral:
+            spectrafpColumn2use = 'spectraFP_dtype'
+        else:
+            spectrafpColumn2use = 'spectraFP_NoIntegral'
         
+        print(spectrafpColumn2use)
+        ParallelPandas.initialize(disable_pr_bar=True,n_cpu=n_threads) 
+        df = self.db.copy()
+
+        hfp_ = SpectraFP1H(range_spectra=range_spectra,multiplicty_filter=multiplicty_filter)
+        signs1H_vet = hfp_.genFP(signs1H,correction=correction).ravel()
+
+        df['DifSigns'] = df[spectrafpColumn2use].p_apply(lambda x: abs(len(x) - len(signs1H)))
+        df = df.query('DifSigns <= @difLenghtSigns').reset_index(drop=True)
+        #df.drop('DifSigns',axis=1,inplace=True)
+        df['Similarity'] = df[spectrafpColumn2use].p_apply(lambda x: self.cosineSimilarity(hfp_.genFP(x,correction=correction).ravel(), signs1H_vet))
+        df = df.query('Similarity >= @threshold')
+        df = df.sort_values(by=['Similarity'], ascending=False).reset_index(drop=True)
+        #print(df)
+        return df
+
+    def __needIntegral(self,sign1H):
+        signshape = np.array(sign1H).shape
+        if signshape[1] == 3:
+            return True
+        else:
+            return False
+
+    def __loadata(self):
+        path = f'{ABSOLUT_PATH}/data/metabolites.pkl'        
+        return pd.read_pickle(path,compression='zip')    
+    
+    def cosineSimilarity(self,vet1,vet2):
+        return dot(vet1, vet2) / (norm(vet1) * norm(vet2))
+    
+    @staticmethod
+    def drawSimilarMolecules(dfSimilarity1H:pd.DataFrame,n_molecules2show:int=10,path2save:str=None,filename:str=None):
+        from rdkit.Chem import Draw
+        from rdkit import Chem
+
+        nfounded = dfSimilarity1H.shape[0]
+        if n_molecules2show > nfounded:
+            n_molecules2show = nfounded
+
+        top_10_molecules = [Chem.MolFromInchi(dfSimilarity1H['Inchi'][i]) for i in range(0,n_molecules2show)]
+        top_10_names = [dfSimilarity1H['Name'][i] for i in range(0,n_molecules2show)]
+        top_10_similarity = [dfSimilarity1H['Similarity'][i] for i in range(0,n_molecules2show)]
+        legend = [f'{name}\n{round(sim*100,2)}%' for name,sim in zip(top_10_names,top_10_similarity)]
+        img=Draw.MolsToGridImage(top_10_molecules,molsPerRow=4,subImgSize=(300,300),legends=legend,useSVG=True)
+        if path2save == None:
+            return img
+        else:
+            if filename == None:
+                with open(f'{path2save}/molsgridSimilarity.svg', 'w') as file:
+                    file.write(img)
+            else:
+                with open(f'{path2save}/{filename}.svg', 'w') as file:
+                    file.write(img)
+            
 
 ## classes de excepts personalizados
 class MultiplicityError(Exception):
     pass
 
-"""if __name__ == '__main__':
+class InconsistentvalueError(Exception):
+    pass
+
+if __name__ == '__main__':
     ################# Testes SpectraFP    
     #amostra = [0.0, 12.4,0.1, 25.4,25.5,25.6, 35.1, 70.4, 170.4, 175.2, 187]
     #nfp = SpectraFP(range_spectra=[0, 187, 0.1])    
@@ -559,12 +644,33 @@ class MultiplicityError(Exception):
 
     ################# Testes SpectraFP1H
     data = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
-    data2 = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
-    data = [(0.03,'multiplet',2),(1.12,'s',4),(2.50,'s',3),(0.18,'q',1),(0.12,'t',2)]
+    data = [(7.74, 'd', 1), (7.5, 'd', 1), (7.23, 'm', 2), (7.16, 'td', 1), (4.33, 'dd', 1), (3.25, 'm', 2), (3.06, 'dd', 2)]
+    #data = [(0.03,'multiplet',2),(1.12,'s',4),(2.50,'s',3),(0.18,'q',1),(0.12,'t',2)]
+    #data = [(4.3, 'm', 2), (3.9, 'm', 3), (3.64, 'm', 4), (3.2, 's', 9)]
+    data = [(11.96, 'd', 1), (11.57, 'd', 1), (11.5, 's', 1), (7.91, 'm', 1), (6.99, 's', 3), (5.92, 'd', 6)]
+    data = [(7.69, 'd', 1), (7.64, 'dd', 1), (6.91, 'd', 1), (2.23, 's', 3)]
+    data = [(7.69, 'd'), (7.64, 'dd'), (6.91, 'd'), (2.23, 's')]
+    data = [(11.96, 'd'), (11.57, 'd'), (11.5, 's'), (7.91, 'm'), (6.99, 's'), (5.92, 'd')]
 
-    hfp = SpectraFP1H(range_spectra=[0,2.6,0.01],multiplicty_filter=['All'])
+    hfp = SpectraFP1H(range_spectra=[0,14,0.01],multiplicty_filter=['All'])
     result = hfp.genFP(peaks=data, correction=2, returnAsBinaryValues=False)
-    print(result,result.shape)"""
+    #print(result,result.shape)
+
+    ##teste search engine metabolites
+    sem = SearchMetabolitesBy1H()
+    db_sim = sem.search(signs1H=data,
+               correction=3,
+               threshold=0.4,
+               difLenghtSigns=2,
+               range_spectra=[0,14,0.01],
+               multiplicty_filter=['All'],
+               n_threads=6)
+    print(db_sim)
+    
+    SearchMetabolitesBy1H.drawSimilarMolecules(dfSimilarity1H=db_sim,
+                                               n_molecules2show=10,
+                                               path2save='/home/jefferson',
+                                               filename=None)
 
 
 
