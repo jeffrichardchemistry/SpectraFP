@@ -668,7 +668,7 @@ if __name__ == '__main__':
     print(db_sim)
     
     SearchMetabolitesBy1H.drawSimilarMolecules(dfSimilarity1H=db_sim,
-                                               n_molecules2show=10,
+                                               n_molecules2show=12,
                                                path2save='/home/jefferson',
                                                filename=None)
 
