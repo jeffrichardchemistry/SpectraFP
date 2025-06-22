@@ -561,7 +561,6 @@ class SearchMetabolitesBy1H:
         else:
             spectrafpColumn2use = 'spectraFP_NoIntegral'
         
-        print(spectrafpColumn2use)
         ParallelPandas.initialize(disable_pr_bar=True,n_cpu=n_threads) 
         df = self.db.copy()
 
@@ -651,6 +650,7 @@ if __name__ == '__main__':
     data = [(7.69, 'd', 1), (7.64, 'dd', 1), (6.91, 'd', 1), (2.23, 's', 3)]
     data = [(7.69, 'd'), (7.64, 'dd'), (6.91, 'd'), (2.23, 's')]
     data = [(11.96, 'd'), (11.57, 'd'), (11.5, 's'), (7.91, 'm'), (6.99, 's'), (5.92, 'd')]
+    data = [(7.08, 's', 1), (6.95, 's', 2), (3.89, 's', 3), (3.25, 'm', 2)]
 
     hfp = SpectraFP1H(range_spectra=[0,14,0.01],multiplicty_filter=['All'])
     result = hfp.genFP(peaks=data, correction=2, returnAsBinaryValues=False)
@@ -660,7 +660,7 @@ if __name__ == '__main__':
     sem = SearchMetabolitesBy1H()
     db_sim = sem.search(signs1H=data,
                correction=3,
-               threshold=0.4,
+               threshold=0.2,
                difLenghtSigns=2,
                range_spectra=[0,14,0.01],
                multiplicty_filter=['All'],
